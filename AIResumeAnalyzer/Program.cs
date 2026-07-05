@@ -8,12 +8,28 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>();
+
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactPolicy", policy =>
+    {
+         policy.WithOrigins(allowedOrigins!)
+        //policy.AllowAnyOrigin()
+               .AllowAnyHeader()
+               .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<ApplicationDbContext>(options => 
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("defaultConnection")));
 
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -29,6 +45,7 @@ if (app.Environment.IsDevelopment())
 
 //add middleware
 app.UseMiddleware<ExceptionMiddleware>();
+app.UseCors("ReactPolicy");
 
 app.UseAuthorization();
 

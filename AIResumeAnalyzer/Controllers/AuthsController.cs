@@ -38,7 +38,6 @@ namespace AIResumeAnalyzer.Controllers
             };
             var result=await _authService.RegisterAsync(dto);
             if(!result.Success)return BadRequest(result);
-
             return Ok(result);
         }
     }
