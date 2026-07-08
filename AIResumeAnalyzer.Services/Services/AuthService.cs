@@ -14,12 +14,14 @@ using BCrypt.Net;
 
 namespace AIResumeAnalyzer.Services.Services
 {
-    public class AuthService:IAuthService
+    public class AuthService : IAuthService
     {
         private readonly ApplicationDbContext _db;
-        public AuthService(ApplicationDbContext db) 
-        { 
+        private readonly IJwtService _jwtService;
+        public AuthService(ApplicationDbContext db, IJwtService jwtService)
+        {
             _db = db;
+            _jwtService = jwtService;
         }
 
 
@@ -35,8 +37,8 @@ namespace AIResumeAnalyzer.Services.Services
 
             }
 
-            var existingUser = await _db.Users.AsNoTracking().AnyAsync(u=>u.Email== dto.Email);
-            if (existingUser) 
+            var existingUser = await _db.Users.AsNoTracking().AnyAsync(u => u.Email == dto.Email);
+            if (existingUser)
             {
                 return new ApiResponseContainer<RegisterDto>
                 {
@@ -47,29 +49,72 @@ namespace AIResumeAnalyzer.Services.Services
 
             var user = new User
             {
-                FirstName=dto.FirstName,
-                LastName=dto.LastName,
-                Email=dto.Email,
-                PasswordHash= BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                CreatedAt=DateTime.UtcNow,
-                UpdatedAt=DateTime.UtcNow,
-                IsActive=true
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                Email = dto.Email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                IsActive = true
             };
             await _db.Users.AddAsync(user);
             await _db.SaveChangesAsync();
 
             var response = new RegisterDto
             {
-                Id=user.Id,
-                Email=user.Email,
+                Id = user.Id,
+                Email = user.Email,
             };
 
             return new ApiResponseContainer<RegisterDto>
             {
                 Success = true,
-                Message="User registered successfully.",
-                Data= response
+                Message = "User registered successfully.",
+                Data = response
             };
+
+        }
+        public async Task<ApiResponseContainer<LoginResponseDto>> LoginAsync(LoginRequestDto dto)
+        {
+            var isUserExist = await _db.Users.FirstOrDefaultAsync(f => f.Email == dto.email);
+            if (isUserExist == null)
+            {
+                return new ApiResponseContainer<LoginResponseDto>
+                {
+                    Success=false,
+                    Message="Invalid user."
+                };
+            }
+            bool isPasswordValid= BCrypt.Net.BCrypt.Verify(dto.password, isUserExist.PasswordHash);
+            if (!isPasswordValid) 
+            {
+                return new ApiResponseContainer<LoginResponseDto>
+                {
+                    Success=false,
+                    Message= "Invalid Password."
+                };
+            }
+
+            //Jwt token creation
+
+            string accessToken = _jwtService.GenerateAccessToken(isUserExist);
+            LoginResponseDto loginResponse = new LoginResponseDto
+            {
+                Id = isUserExist.Id,
+                FirstName = isUserExist.FirstName,
+                LastName = isUserExist.LastName,
+                Email = isUserExist.Email,
+                AccessToken = accessToken,
+                AccessTokenExpiresOn = _jwtService.GetAccessTokenExpiry()
+            };
+
+            return new ApiResponseContainer<LoginResponseDto>
+            {
+                Success=true,
+                Message="Login successfully",
+                Data= loginResponse,
+            };
+            
 
         }
     }

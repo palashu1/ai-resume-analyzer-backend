@@ -3,6 +3,7 @@ using AIResumeAnalyzer.Infrastructure.Data;
 using AIResumeAnalyzer.Model;
 using AIResumeAnalyzer.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIResumeAnalyzer.Controllers
@@ -38,6 +39,20 @@ namespace AIResumeAnalyzer.Controllers
             };
             var result=await _authService.RegisterAsync(dto);
             if(!result.Success)return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> login(LoginRequestModel model)
+        {
+            LoginRequestDto dto = new LoginRequestDto
+            {
+                email=model.email,
+                password=model.password
+            };
+
+            var result = await _authService.LoginAsync(dto);
+            if (!result.Success) return BadRequest(result);
             return Ok(result);
         }
     }

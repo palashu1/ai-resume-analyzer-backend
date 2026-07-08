@@ -12,5 +12,6 @@ namespace AIResumeAnalyzer.Services.Interfaces
     public interface IAuthService
     {
         Task<ApiResponseContainer<RegisterDto>> RegisterAsync(RegisterDto dto);
+        Task<ApiResponseContainer<LoginResponseDto>> LoginAsync(LoginRequestDto dto);
     }
 }

@@ -1,3 +1,4 @@
+using AIResumeAnalyzer.DTO;
 using AIResumeAnalyzer.Infrastructure.Data;
 using AIResumeAnalyzer.Middleware;
 using AIResumeAnalyzer.Services.Interfaces;
@@ -32,7 +33,11 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("defaultConnection")));
 
+builder.Services.Configure<JwtSettingsDto>(
+    builder.Configuration.GetSection("Jwt"));
+
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IJwtService, JwtService>();
 
 var app = builder.Build();
 
