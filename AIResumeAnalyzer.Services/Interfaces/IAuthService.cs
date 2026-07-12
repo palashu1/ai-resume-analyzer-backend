@@ -13,5 +13,6 @@ namespace AIResumeAnalyzer.Services.Interfaces
     {
         Task<ApiResponseContainer<RegisterDto>> RegisterAsync(RegisterDto dto);
         Task<ApiResponseContainer<LoginResponseDto>> LoginAsync(LoginRequestDto dto);
+        Task<ApiResponseContainer<RefreshTokenResponseDto>> RefreshTokenAsync(string refreshToken);
     }
 }

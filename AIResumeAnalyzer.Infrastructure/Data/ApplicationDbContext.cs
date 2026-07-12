@@ -49,8 +49,16 @@ namespace AIResumeAnalyzer.Infrastructure.Data
                 entity.Property(e => e.CreatedAt)
                       .HasDefaultValueSql("GETUTCDATE()");
             });
+
+            modelBuilder.Entity<RefreshToken>()
+                .HasOne(sd=>sd.User)
+                .WithMany(m=>m.RefreshTokens)
+                .HasForeignKey(sd=>sd.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+             
         }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
     }
 }

@@ -13,9 +13,11 @@ namespace AIResumeAnalyzer.Controllers
     public class AuthsController : ControllerBase
     {
         private readonly IAuthService _authService;
-        public AuthsController(IAuthService authService)
+        private readonly IWebHostEnvironment _environment;
+        public AuthsController(IAuthService authService, IWebHostEnvironment environment)
         {
             _authService = authService;
+            _environment = environment;
         }
 
 
@@ -37,8 +39,8 @@ namespace AIResumeAnalyzer.Controllers
                 Password = model.Password,
                 ConfirmPassword = model.ConfirmPassword,
             };
-            var result=await _authService.RegisterAsync(dto);
-            if(!result.Success)return BadRequest(result);
+            var result = await _authService.RegisterAsync(dto);
+            if (!result.Success) return BadRequest(result);
             return Ok(result);
         }
 
@@ -47,13 +49,60 @@ namespace AIResumeAnalyzer.Controllers
         {
             LoginRequestDto dto = new LoginRequestDto
             {
-                email=model.email,
-                password=model.password
+                email = model.email,
+                password = model.password
             };
 
             var result = await _authService.LoginAsync(dto);
             if (!result.Success) return BadRequest(result);
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = !_environment.IsDevelopment(),
+                SameSite = _environment.IsDevelopment()
+                    ? SameSiteMode.Lax
+                    : SameSiteMode.None,
+                Expires = DateTime.UtcNow.AddDays(7),
+                IsEssential = true
+            };
+            Response.Cookies.Append(
+                "refreshToken",
+                result.Data.RefreshToken,
+                cookieOptions
+                );
+            result.Data.RefreshToken = string.Empty;
             return Ok(result);
+        }
+
+        [HttpPost("refreshToken")]
+        public async Task<IActionResult> refreshToken()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return Unauthorized("Refresh token not found.");
+            }
+            var result=await _authService.RefreshTokenAsync(refreshToken);
+            if (!result.Success) return Unauthorized(result);
+
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = !_environment.IsDevelopment(),
+                SameSite = _environment.IsDevelopment()
+                   ? SameSiteMode.Lax
+                   : SameSiteMode.None,
+                Expires = DateTime.UtcNow.AddDays(7),
+                IsEssential = true
+            };
+            Response.Cookies.Append(
+                "refreshToken",
+                result.Data.RefreshToken,
+                cookieOptions
+                );
+            result.Data.RefreshToken = string.Empty;
+            return Ok(result);
+
         }
     }
 }

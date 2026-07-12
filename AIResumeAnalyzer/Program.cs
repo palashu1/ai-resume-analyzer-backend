@@ -1,8 +1,10 @@
 using AIResumeAnalyzer.DTO;
 using AIResumeAnalyzer.Infrastructure.Data;
 using AIResumeAnalyzer.Middleware;
+using AIResumeAnalyzer.Services.BackgroundServices;
 using AIResumeAnalyzer.Services.Interfaces;
 using AIResumeAnalyzer.Services.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,7 +23,8 @@ builder.Services.AddCors(options =>
          policy.WithOrigins(allowedOrigins!)
         //policy.AllowAnyOrigin()
                .AllowAnyHeader()
-               .AllowAnyMethod();
+               .AllowAnyMethod()
+               .AllowCredentials();
     });
 });
 
@@ -35,11 +38,26 @@ options.UseSqlServer(builder.Configuration.GetConnectionString("defaultConnectio
 
 builder.Services.Configure<JwtSettingsDto>(
     builder.Configuration.GetSection("Jwt"));
+//For we know which device use by endUser
+builder.Services.AddHttpContextAccessor();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
+});
+
+//background service
+builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<IRequestInfoService, RequestInfoService>();
+
 
 var app = builder.Build();
+app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
